@@ -1,0 +1,20 @@
+HFT Simulator - Resultado da Geracao de Dados
+
+Comando executado:
+python database\generate_data.py --dsn "postgresql://postgres:postgres@localhost:55432/hft_clean" --workers 4 --orders 300000 --batch-size 1000
+
+Resultado final observado:
+worker=1 inserted=75000 elapsed=856.08s
+worker=2 inserted=75000 elapsed=857.98s
+worker=3 inserted=75000 elapsed=859.66s
+worker=4 inserted=75000 elapsed=862.09s
+started_at_utc= 2026-06-20T15:15:15.358868+00:00
+volume_total_orders= 440503
+trades_generated= 324065
+candles_rebuilt= 75
+database_size= 703 MB
+database_size_bytes= 737516903
+execution_time_seconds= 864.75
+
+Conclusao:
+O banco atingiu o volume exigido pela especificacao, ficando dentro da faixa de 700 MB a 1 GB.

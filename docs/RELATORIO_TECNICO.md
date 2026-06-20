@@ -66,13 +66,16 @@ O DER completo esta documentado em `docs/DER.md`.
 
 ## Screenshots das Saidas
 
-Inserir prints de:
+As evidencias de execucao foram geradas em `docs/screenshots`:
 
-- Execucao de `03_matching_tests.sql`.
-- Consulta de `view_market_summary`.
-- Consulta de `view_trades_history`.
-- Consulta de `view_traders_ranking`.
-- Execucao do `generate_data.py` mostrando volume, trades e tempo.
+- `00_generator_result.png`: execucao do gerador, volume, trades, candles e tempo.
+- `01_volume_summary.png`: tamanho do banco e totais principais.
+- `02_market_summary.png`: saida de `view_market_summary`.
+- `03_trades_history.png`: saida de `view_trades_history`.
+- `04_traders_ranking.png`: saida de `view_traders_ranking`.
+- `05_integrity_checks.png`: checks de saldos, quantidades e book cruzado.
+
+O DER exportado do Astah esta em `docs/der/der_hft_simulator.jpeg`.
 
 ## Conclusoes e Melhorias Sugeridas
 

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: lbd-hft-pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hft
+    ports:
+      - "55432:5432"
+    volumes:
+      - lbd_hft_pgdata:/var/lib/postgresql/data
+
+volumes:
+  lbd_hft_pgdata:
+

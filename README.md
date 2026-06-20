@@ -2,10 +2,13 @@
 
 Simulador de Order Book de criptomoedas usando PostgreSQL 15, PL/pgSQL e Python.
 
+O projeto implementa cadastro de usuarios, carteiras com saldo disponivel e bloqueado, ordens de compra/venda, matching automatico com Partial Fill, trades imutaveis, auditoria, candles OHLCV por minuto, views e gerador concorrente de dados.
+
 ## Estrutura
 
 ```text
 database/
+  00_run_all.sql
   01_schema.sql
   02_matching_views.sql
   03_matching_tests.sql
@@ -16,24 +19,70 @@ docs/
   DER.md
   CHECKLIST_CONFORMIDADE.md
   RELATORIO_TECNICO.md
+  der/
+    der_hft_simulator.jpeg
+  screenshots/
+    00_generator_result.png
+    01_volume_summary.png
+    02_market_summary.png
+    03_trades_history.png
+    04_traders_ranking.png
+    05_integrity_checks.png
+docker-compose.yml
 requirements.txt
 ```
 
 ## Requisitos
 
-- PostgreSQL 15+
-- Python 3.10+
-- Pacote Python `psycopg[binary]`
+Opcao recomendada:
 
-Instalacao da dependencia Python:
+- Docker Desktop
+- Python 3.10+
+
+Opcao sem Docker:
+
+- PostgreSQL 15+
+- Cliente `psql`
+- Python 3.10+
+
+Instale as dependencias Python:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-## Execucao do Banco
+## Execucao Rapida com Docker
 
-Crie o banco:
+Suba o PostgreSQL 15:
+
+```bash
+docker compose up -d
+```
+
+Copie os scripts para o container:
+
+```bash
+docker cp database/. lbd-hft-pg:/database
+```
+
+Execute a criacao do banco, funcoes, trigger, testes e validacoes:
+
+```bash
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/01_schema.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/02_matching_views.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/03_matching_tests.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/04_validation_queries.sql
+```
+
+DSN para conexao local ao banco do Docker:
+
+```text
+postgresql://postgres:postgres@localhost:55432/hft
+```
+
+## Execucao Sem Docker
+
+Crie o banco local:
 
 ```bash
 createdb hft
@@ -42,21 +91,97 @@ createdb hft
 Execute os scripts:
 
 ```bash
-psql -d hft -f database/01_schema.sql
-psql -d hft -f database/02_matching_views.sql
-psql -d hft -f database/03_matching_tests.sql
-psql -d hft -f database/04_validation_queries.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/01_schema.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/02_matching_views.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/03_matching_tests.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/04_validation_queries.sql
 ```
+
+DSN local comum:
+
+```text
+postgresql://postgres:postgres@localhost:5432/hft
+```
+
+## Scripts SQL
+
+- `01_schema.sql`: cria schema, tipos, tabelas, PKs, FKs, CHECKs, particoes e indices.
+- `02_matching_views.sql`: cria funcoes, trigger de matching, auditoria, imutabilidade de trades e views.
+- `03_matching_tests.sql`: insere um teste pequeno de matching e Partial Fill.
+- `04_validation_queries.sql`: executa consultas de demonstracao e checks de integridade.
+
+Para carga grande, rode primeiro `01_schema.sql` e `02_matching_views.sql`, depois o gerador Python. O `03_matching_tests.sql` e opcional e serve para demonstracao curta.
 
 ## Geracao de Dados
 
 O gerador usa processos paralelos e insercao em lote via `COPY`.
 
+Com Docker:
+
+```bash
+python database/generate_data.py --dsn "postgresql://postgres:postgres@localhost:55432/hft" --workers 4 --orders 200000 --batch-size 1000
+```
+
+Sem Docker:
+
 ```bash
 python database/generate_data.py --dsn "postgresql://postgres:postgres@localhost:5432/hft" --workers 4 --orders 200000 --batch-size 1000
 ```
 
-Para atingir 700 MB a 1 GB, aumente `--orders` gradualmente e acompanhe o tamanho impresso no final da execucao.
+Para atingir entre 700 MB e 1 GB, aumente `--orders` gradualmente. A execucao registrada para este trabalho atingiu:
+
+```text
+volume_total_orders = 440503
+trades_generated = 324065
+candles_rebuilt = 75
+database_size = 703 MB
+database_size_bytes = 737516903
+```
+
+As evidencias estao em `docs/screenshots`.
+
+## Validacao
+
+Com Docker:
+
+```bash
+docker cp database/. lbd-hft-pg:/database
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/04_validation_queries.sql
+```
+
+Sem Docker:
+
+```bash
+psql -d hft -v ON_ERROR_STOP=1 -f database/04_validation_queries.sql
+```
+
+Checks esperados:
+
+```text
+negative_wallets = 0
+bad_order_quantities = 0
+lock_mismatch = 0
+crossed_books = 0
+```
+
+## DER e Evidencias
+
+DER exportado do Astah:
+
+```text
+docs/der/der_hft_simulator.jpeg
+```
+
+Evidencias geradas:
+
+```text
+docs/screenshots/00_generator_result.png
+docs/screenshots/01_volume_summary.png
+docs/screenshots/02_market_summary.png
+docs/screenshots/03_trades_history.png
+docs/screenshots/04_traders_ranking.png
+docs/screenshots/05_integrity_checks.png
+```
 
 ## Principais Recursos
 
@@ -65,29 +190,17 @@ Para atingir 700 MB a 1 GB, aumente `--orders` gradualmente e acompanhe o tamanh
 - Order Book com bids e asks.
 - Trigger de matching com Partial Fill.
 - `SELECT FOR UPDATE SKIP LOCKED`.
+- `pg_advisory_xact_lock` para evitar deadlocks na liquidacao financeira.
 - Trades imutaveis.
-- Candles OHLCV por minuto particionados, reconstruidos em lote a partir dos trades.
+- Candles OHLCV por minuto particionados e reconstruidos em lote a partir dos trades.
 - Views de resumo de mercado, historico de trades e ranking de traders.
 - Funcoes `get_best_orders`, `cancel_order` e `user_portfolio`.
 
-## Entregaveis Manuais
-
-Antes da entrega final:
-
-- Exportar o DER do Astah em PNG ou PDF.
-- Preencher os membros no relatorio tecnico.
-- Inserir screenshots das consultas e da geracao de dados.
-- Executar o gerador ate o banco atingir entre 700 MB e 1 GB.
-- Subir todos os artefatos no Google Drive institucional.
-- Atualizar este README com integrantes, RGAs e link do Drive.
-
 ## Integrantes e Link do Drive
 
-Preencher antes da submissao:
-
 ```text
-Integrante 1: João Pedro de jesus perin
-RGA:2023.1906.050-0
+Integrante 1: Joao Pedro de Jesus Perin
+RGA: 2023.1906.050-0
 E-mail: joao_jesus@ufms.br
 
 Integrante 2:
@@ -96,3 +209,4 @@ E-mail:
 
 Link do Google Drive:
 ```
+

@@ -1,0 +1,15 @@
+SET
+ database_name | database_size | database_size_bytes 
+---------------+---------------+---------------------
+ hft_clean     | 703 MB        |           737516903
+(1 row)
+
+   object_name    |  total  
+------------------+---------
+ candles_1m       |      75
+ trades           |  324065
+ orders           |  440503
+ order_audit_logs | 1088633
+ wallet_movements | 1807128
+(5 rows)
+

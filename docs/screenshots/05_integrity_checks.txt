@@ -1,0 +1,17 @@
+SET
+      check_name      | problems 
+----------------------+----------
+ negative_wallets     |        0
+ bad_order_quantities |        0
+(2 rows)
+
+  check_name   | problems 
+---------------+----------
+ lock_mismatch |        0
+(1 row)
+
+  check_name   | problems 
+---------------+----------
+ crossed_books |        0
+(1 row)
+
