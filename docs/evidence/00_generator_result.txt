@@ -1,7 +1,7 @@
 HFT Simulator - Resultado da Geracao de Dados
 
 Comando executado:
-python database\generate_data.py --dsn "postgresql://postgres:postgres@localhost:55432/hft_clean" --workers 4 --orders 300000 --batch-size 1000
+python scripts\generate_data.py --dsn "postgresql://postgres:postgres@localhost:55432/hft_clean" --workers 4 --orders 300000 --batch-size 1000
 
 Resultado final observado:
 worker=1 inserted=75000 elapsed=856.08s

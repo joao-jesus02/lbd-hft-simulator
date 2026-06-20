@@ -8,27 +8,31 @@ O projeto implementa cadastro de usuarios, carteiras com saldo disponivel e bloq
 
 ```text
 database/
-  00_reset_schema.sql
-  00_run_all.sql
-  01_schema.sql
-  02_matching_views.sql
-  03_matching_tests.sql
-  04_validation_queries.sql
-  README_EXECUCAO.md
-  generate_data.py
+  sql/
+    00_reset_schema.sql
+    00_run_all.sql
+    01_schema.sql
+    02_matching_views.sql
+    03_matching_tests.sql
+    04_validation_queries.sql
 docs/
   DER.md
   CHECKLIST_CONFORMIDADE.md
-  RELATORIO_TECNICO.md
+  EXECUCAO.md
   der/
     der_hft_simulator.jpeg
-  screenshots/
+    README_DER.md
+  evidence/
     00_generator_result.png
     01_volume_summary.png
     02_market_summary.png
     03_trades_history.png
     04_traders_ranking.png
     05_integrity_checks.png
+  report/
+    RELATORIO_TECNICO.md
+scripts/
+  generate_data.py
 docker-compose.yml
 requirements.txt
 ```
@@ -69,22 +73,22 @@ docker cp database/. lbd-hft-pg:/database
 Execute a criacao do banco, funcoes, trigger, testes e validacoes:
 
 ```bash
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/01_schema.sql
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/02_matching_views.sql
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/03_matching_tests.sql
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/04_validation_queries.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/01_schema.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/02_matching_views.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/03_matching_tests.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/04_validation_queries.sql
 ```
 
 Opcao equivalente para rodar tudo de uma vez:
 
 ```bash
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/00_run_all.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/00_run_all.sql
 ```
 
 Se precisar recomecar do zero no mesmo banco:
 
 ```bash
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/00_reset_schema.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/00_reset_schema.sql
 ```
 
 Depois execute novamente `00_run_all.sql` ou a sequencia de scripts.
@@ -106,22 +110,22 @@ createdb hft
 Execute os scripts:
 
 ```bash
-psql -d hft -v ON_ERROR_STOP=1 -f database/01_schema.sql
-psql -d hft -v ON_ERROR_STOP=1 -f database/02_matching_views.sql
-psql -d hft -v ON_ERROR_STOP=1 -f database/03_matching_tests.sql
-psql -d hft -v ON_ERROR_STOP=1 -f database/04_validation_queries.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/01_schema.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/02_matching_views.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/03_matching_tests.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/04_validation_queries.sql
 ```
 
 Opcao equivalente para rodar tudo de uma vez:
 
 ```bash
-psql -d hft -v ON_ERROR_STOP=1 -f database/00_run_all.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/00_run_all.sql
 ```
 
 Se precisar recomecar do zero:
 
 ```bash
-psql -d hft -v ON_ERROR_STOP=1 -f database/00_reset_schema.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/00_reset_schema.sql
 ```
 
 DSN local comum:
@@ -146,13 +150,13 @@ O gerador usa processos paralelos e insercao em lote via `COPY`.
 Com Docker:
 
 ```bash
-python database/generate_data.py --dsn "postgresql://postgres:postgres@localhost:55432/hft" --workers 4 --orders 200000 --batch-size 1000
+python scripts/generate_data.py --dsn "postgresql://postgres:postgres@localhost:55432/hft" --workers 4 --orders 200000 --batch-size 1000
 ```
 
 Sem Docker:
 
 ```bash
-python database/generate_data.py --dsn "postgresql://postgres:postgres@localhost:5432/hft" --workers 4 --orders 200000 --batch-size 1000
+python scripts/generate_data.py --dsn "postgresql://postgres:postgres@localhost:5432/hft" --workers 4 --orders 200000 --batch-size 1000
 ```
 
 Para atingir entre 700 MB e 1 GB, aumente `--orders` gradualmente. A execucao registrada para este trabalho atingiu:
@@ -165,7 +169,7 @@ database_size = 703 MB
 database_size_bytes = 737516903
 ```
 
-As evidencias estao em `docs/screenshots`.
+As evidencias estao em `docs/evidence`.
 
 ## Validacao
 
@@ -173,13 +177,13 @@ Com Docker:
 
 ```bash
 docker cp database/. lbd-hft-pg:/database
-docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/04_validation_queries.sql
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/sql/04_validation_queries.sql
 ```
 
 Sem Docker:
 
 ```bash
-psql -d hft -v ON_ERROR_STOP=1 -f database/04_validation_queries.sql
+psql -d hft -v ON_ERROR_STOP=1 -f database/sql/04_validation_queries.sql
 ```
 
 Checks esperados:
@@ -202,12 +206,12 @@ docs/der/der_hft_simulator.jpeg
 Evidencias geradas:
 
 ```text
-docs/screenshots/00_generator_result.png
-docs/screenshots/01_volume_summary.png
-docs/screenshots/02_market_summary.png
-docs/screenshots/03_trades_history.png
-docs/screenshots/04_traders_ranking.png
-docs/screenshots/05_integrity_checks.png
+docs/evidence/00_generator_result.png
+docs/evidence/01_volume_summary.png
+docs/evidence/02_market_summary.png
+docs/evidence/03_trades_history.png
+docs/evidence/04_traders_ranking.png
+docs/evidence/05_integrity_checks.png
 ```
 
 ## Principais Recursos

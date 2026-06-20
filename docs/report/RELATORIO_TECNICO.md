@@ -66,7 +66,7 @@ O DER completo esta documentado em `docs/DER.md`.
 
 ## Screenshots das Saidas
 
-As evidencias de execucao foram geradas em `docs/screenshots`:
+As evidencias de execucao foram geradas em `docs/evidence`:
 
 - `00_generator_result.png`: execucao do gerador, volume, trades, candles e tempo.
 - `01_volume_summary.png`: tamanho do banco e totais principais.
