@@ -48,6 +48,7 @@
 - [x] Sem `sleep()` ou `delay()`.
 - [x] Precos com variacao realista por seno, drift e ruido.
 - [x] Impressao de total de ordens, trades gerados, tamanho do banco e tempo.
+- [x] Banco validado com 703 MB em ambiente de teste.
 
 ## Pendencias externas
 

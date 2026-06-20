@@ -8,6 +8,7 @@ O projeto implementa cadastro de usuarios, carteiras com saldo disponivel e bloq
 
 ```text
 database/
+  00_reset_schema.sql
   00_run_all.sql
   01_schema.sql
   02_matching_views.sql
@@ -74,6 +75,20 @@ docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/0
 docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/04_validation_queries.sql
 ```
 
+Opcao equivalente para rodar tudo de uma vez:
+
+```bash
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/00_run_all.sql
+```
+
+Se precisar recomecar do zero no mesmo banco:
+
+```bash
+docker exec lbd-hft-pg psql -U postgres -d hft -v ON_ERROR_STOP=1 -f /database/00_reset_schema.sql
+```
+
+Depois execute novamente `00_run_all.sql` ou a sequencia de scripts.
+
 DSN para conexao local ao banco do Docker:
 
 ```text
@@ -95,6 +110,18 @@ psql -d hft -v ON_ERROR_STOP=1 -f database/01_schema.sql
 psql -d hft -v ON_ERROR_STOP=1 -f database/02_matching_views.sql
 psql -d hft -v ON_ERROR_STOP=1 -f database/03_matching_tests.sql
 psql -d hft -v ON_ERROR_STOP=1 -f database/04_validation_queries.sql
+```
+
+Opcao equivalente para rodar tudo de uma vez:
+
+```bash
+psql -d hft -v ON_ERROR_STOP=1 -f database/00_run_all.sql
+```
+
+Se precisar recomecar do zero:
+
+```bash
+psql -d hft -v ON_ERROR_STOP=1 -f database/00_reset_schema.sql
 ```
 
 DSN local comum:
@@ -209,4 +236,3 @@ E-mail:
 
 Link do Google Drive:
 ```
-
