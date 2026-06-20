@@ -1,25 +1,53 @@
-# HFT Simulator - Execucao
+# Execucao do Banco
 
-Arquivos desta etapa:
+Esta pasta contem os scripts SQL e o gerador de dados do HFT Simulator.
 
-- `02_matching_views.sql`: trigger de matching, partial fill, auditoria, imutabilidade de trades e views.
-- `03_matching_tests.sql`: testes SQL de matching, partial fill, saldos, auditoria e views.
-- `generate_data.py`: gerador concorrente de ordens em Python.
+## Arquivos
 
-Ordem sugerida:
-
-```bash
-psql -d hft -f 01_schema.sql
-psql -d hft -f 02_matching_views.sql
-psql -d hft -f 03_matching_tests.sql
+```text
+01_schema.sql              cria schema, tipos, tabelas, PKs, FKs, CHECKs, particoes e indices
+02_matching_views.sql      cria trigger de matching, funcoes, auditoria, imutabilidade e views
+03_matching_tests.sql      insere dados pequenos para testar matching e Partial Fill
+04_validation_queries.sql  consultas para demonstracao e validacao do projeto
+generate_data.py           gerador concorrente de dados em Python
 ```
 
-Gerador:
+## Ordem de Execucao
 
 ```bash
-pip install "psycopg[binary]"
-python generate_data.py --dsn "postgresql://postgres:postgres@localhost:5432/hft" --workers 4 --orders 200000 --batch-size 1000
+psql -d hft -f database/01_schema.sql
+psql -d hft -f database/02_matching_views.sql
+psql -d hft -f database/03_matching_tests.sql
+psql -d hft -f database/04_validation_queries.sql
 ```
 
-Para chegar entre 700 MB e 1 GB, aumente `--orders`. O valor exato depende de indices, quantidade de trades gerados e configuracao do PostgreSQL.
+## Gerador de Dados
 
+Instale as dependencias a partir da raiz do projeto:
+
+```bash
+pip install -r requirements.txt
+```
+
+Execute com pelo menos 4 processos:
+
+```bash
+python database/generate_data.py --dsn "postgresql://postgres:postgres@localhost:5432/hft" --workers 4 --orders 200000 --batch-size 1000
+```
+
+Para atingir entre 700 MB e 1 GB, aumente `--orders`, por exemplo:
+
+```bash
+python database/generate_data.py --dsn "postgresql://postgres:postgres@localhost:5432/hft" --workers 4 --orders 1000000 --batch-size 1000
+```
+
+O script imprime:
+
+```text
+volume_total_orders
+trades_generated
+candles_rebuilt
+database_size
+database_size_bytes
+execution_time_seconds
+```

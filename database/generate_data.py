@@ -216,6 +216,16 @@ def count_results(dsn: str):
     return orders, trades, size_pretty, size_bytes
 
 
+def rebuild_candles(dsn: str):
+    with connect(dsn) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SET search_path TO hft")
+            cur.execute("SELECT rebuild_candles_1m()")
+            rows = cur.fetchone()[0]
+        conn.commit()
+    return rows
+
+
 def main():
     parser = argparse.ArgumentParser(description="Gerador concorrente de dados para HFT Simulator.")
     parser.add_argument("--dsn", default=os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/hft"))
@@ -242,12 +252,14 @@ def main():
             worker_id, inserted, elapsed = future.result()
             print(f"worker={worker_id} inserted={inserted} elapsed={elapsed:.2f}s")
 
+    candles_rebuilt = rebuild_candles(args.dsn)
     elapsed = time.perf_counter() - start
     orders, trades, size_pretty, size_bytes = count_results(args.dsn)
 
     print("started_at_utc=", started_at.isoformat())
     print("volume_total_orders=", orders)
     print("trades_generated=", trades)
+    print("candles_rebuilt=", candles_rebuilt)
     print("database_size=", size_pretty)
     print("database_size_bytes=", size_bytes)
     print("execution_time_seconds=", round(elapsed, 2))
@@ -255,4 +267,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -163,6 +163,44 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION rebuild_candles_1m()
+RETURNS BIGINT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_rows BIGINT;
+BEGIN
+    TRUNCATE TABLE candles_1m;
+
+    INSERT INTO candles_1m (
+        market_id,
+        bucket_minute,
+        open_price,
+        high_price,
+        low_price,
+        close_price,
+        volume_base,
+        volume_quote,
+        trades_count
+    )
+    SELECT
+        t.market_id,
+        date_trunc('minute', t.executed_at) AS bucket_minute,
+        (array_agg(t.price ORDER BY t.executed_at ASC, t.trade_id ASC))[1] AS open_price,
+        MAX(t.price) AS high_price,
+        MIN(t.price) AS low_price,
+        (array_agg(t.price ORDER BY t.executed_at DESC, t.trade_id DESC))[1] AS close_price,
+        SUM(t.quantity) AS volume_base,
+        SUM(t.quote_amount) AS volume_quote,
+        COUNT(*) AS trades_count
+    FROM trades t
+    GROUP BY t.market_id, date_trunc('minute', t.executed_at);
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    RETURN v_rows;
+END;
+$$;
+
 -- ------------------------------------------------------------
 -- Trigger principal de matching
 -- ------------------------------------------------------------
@@ -201,6 +239,10 @@ DECLARE
     v_new_locked_remaining NUMERIC(36, 18);
     v_locked_wallets_count INTEGER;
 BEGIN
+    -- Serializa o nucleo financeiro do matching para evitar deadlocks entre
+    -- carteiras quando multiplos processos inserem ordens concorrentemente.
+    PERFORM pg_advisory_xact_lock(hashtext('hft_matching_core'));
+
     IF NEW.status <> 'open' OR NEW.remaining_quantity <= 0 THEN
         RETURN NEW;
     END IF;
@@ -292,6 +334,12 @@ BEGIN
               AND remaining_quantity > 0
               AND price <= v_new_order.price
               AND user_id <> v_new_order.user_id
+              AND EXISTS (
+                  SELECT 1
+                  FROM order_audit_logs audit
+                  WHERE audit.order_id = orders.order_id
+                    AND audit.reason = 'created'
+              )
             ORDER BY price ASC, created_at ASC, order_id ASC
             LIMIT 1
             FOR UPDATE SKIP LOCKED;
@@ -305,6 +353,12 @@ BEGIN
               AND remaining_quantity > 0
               AND price >= v_new_order.price
               AND user_id <> v_new_order.user_id
+              AND EXISTS (
+                  SELECT 1
+                  FROM order_audit_logs audit
+                  WHERE audit.order_id = orders.order_id
+                    AND audit.reason = 'created'
+              )
             ORDER BY price DESC, created_at ASC, order_id ASC
             LIMIT 1
             FOR UPDATE SKIP LOCKED;
@@ -499,13 +553,8 @@ BEGIN
         PERFORM log_order_audit(v_new_order.order_id, v_new_old_status, v_new_status, v_new_old_remaining, v_new_order.remaining_quantity, 'trade_match');
         PERFORM log_order_audit(v_counter_order.order_id, v_counter_old_status, v_counter_status, v_counter_old_remaining, v_counter_order.remaining_quantity, 'trade_match');
 
-        PERFORM upsert_candle_1m(
-            v_new_order.market_id,
-            now(),
-            v_trade_price,
-            v_trade_qty,
-            v_trade_quote
-        );
+        -- Candles sao reconstruidos em lote por rebuild_candles_1m().
+        -- Evita deadlocks em carga concorrente intensa.
     END LOOP;
 
     -- Reembolsa excesso de bloqueio em compra quando a execucao ocorreu abaixo do limite.
@@ -737,13 +786,19 @@ BEGIN
         ORDER BY o.price ASC, o.created_at ASC, o.order_id ASC
         LIMIT p_limit
     )
-    SELECT bids.side, bids.price, bids.quantity, bids.order_id, bids.user_email
-    FROM bids
-    UNION ALL
-    SELECT asks.side, asks.price, asks.quantity, asks.order_id, asks.user_email
-    FROM asks
-    ORDER BY CASE WHEN side = 'buy' THEN 0 ELSE 1 END,
-             CASE WHEN side = 'buy' THEN -price ELSE price END;
+    SELECT book.side, book.price, book.quantity, book.order_id, book.user_email
+    FROM (
+        SELECT bids.side, bids.price, bids.quantity, bids.order_id, bids.user_email
+        FROM bids
+        UNION ALL
+        SELECT asks.side, asks.price, asks.quantity, asks.order_id, asks.user_email
+        FROM asks
+    ) book
+    ORDER BY
+        CASE WHEN book.side = 'buy' THEN 0 ELSE 1 END,
+        CASE WHEN book.side = 'buy' THEN book.price END DESC,
+        CASE WHEN book.side = 'sell' THEN book.price END ASC,
+        book.order_id ASC;
 END;
 $$;
 
@@ -942,3 +997,5 @@ BEGIN
         END AS value_in_quote
     FROM portfolio p
     ORDER BY p.asset_symbol;
+END;
+$$;
