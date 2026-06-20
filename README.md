@@ -234,9 +234,10 @@ Integrante 1: Joao Pedro de Jesus Perin
 RGA: 2023.1906.050-0
 E-mail: joao_jesus@ufms.br
 
-Integrante 2:
-RGA:
-E-mail:
+Integrante 2: Jefferson Eduardo Pessoa
+RGA: 2021.1907.010-2
+E-mail: jefferson.pessoa@ufms.br
 
 Link do Google Drive:
+https://drive.google.com/drive/folders/1UFn4nlOr87I8fZ1nSC5OZO9xYfKbpQ4L
 ```
