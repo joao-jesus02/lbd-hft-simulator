@@ -6,6 +6,7 @@ Preencher:
 
 | Nome | Curso | RGA | E-mail |
 |---|---|---|---|
+|Jefferson Eduardo Pessoa| Sistemas de Informação| 2021.1907.010-2 | jefferson.pessoa@ufms.br |
 |João Pedro de Jesus Perin| Engenharia de software | 2023.1906.050-0 | joao_jesus@ufms.br |
 |  |  |  |  |
 
@@ -76,6 +77,10 @@ As evidencias de execucao foram geradas em `docs/evidence`:
 - `05_integrity_checks.png`: checks de saldos, quantidades e book cruzado.
 
 O DER exportado do Astah esta em `docs/der/der_hft_simulator.jpeg`.
+
+## Link github
+
+ https://github.com/joao-jesus02/lbd-hft-simulator
 
 ## Conclusoes e Melhorias Sugeridas
 
